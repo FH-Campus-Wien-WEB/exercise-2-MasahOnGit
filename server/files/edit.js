@@ -1,55 +1,41 @@
 function setMovie(movie) {
-  for (const element of document.forms[0].elements) {
+  const elements = Array.from(document.forms[0].elements).filter(el => el.id);
+
+  for (const element of elements) {
     const name = element.id;
     const value = movie[name];
 
-    if (name === "Genres") {
-      const options = element.options;
-      for (let index = 0; index < options.length; index++) {
-        const option = options[index];
-        option.selected = value.indexOf(option.value) >= 0;
-      }
+    if (name === 'Genres') {
+      Array.from(element.options).forEach(option => {
+        option.selected = Array.isArray(value) && value.includes(option.value);
+      });
+    } else if (Array.isArray(value)) {
+      element.value = value.join(', ');
     } else {
-      element.value = value;
+      element.value = value ?? '';
     }
   }
 }
 
 function getMovie() {
   const movie = {};
-
-  const elements = Array.from(document.forms[0].elements).filter(
-    (element) => element.id,
-  );
+  const elements = Array.from(document.forms[0].elements).filter(el => el.id);
 
   for (const element of elements) {
     const name = element.id;
-
     let value;
 
-    if (name === "Genres") {
-      value = [];
-      const options = element.options;
-      for (let index = 0; index < options.length; index++) {
-        const option = options[index];
-        if (option.selected) {
-          value.push(option.value);
-        }
-      }
-    } else if (
-      name === "Metascore" ||
-      name === "Runtime" ||
-      name === "imdbRating"
-    ) {
-      value = Number(element.value);
-    } else if (
-      name === "Actors" ||
-      name === "Directors" ||
-      name === "Writers"
-    ) {
-      value = element.value.split(",").map((item) => item.trim());
+    if (name === 'Genres') {
+      value = Array.from(element.selectedOptions).map(option => option.value);
+    } else if (['Actors', 'Directors', 'Writers'].includes(name)) {
+      value = element.value
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean);
+    } else if (['Metascore', 'Runtime', 'imdbRating'].includes(name)) {
+      value = Number(element.value) || 0;
     } else {
-      value = element.value;
+      value = element.value.trim();
     }
 
     movie[name] = value;
@@ -59,41 +45,45 @@ function getMovie() {
 }
 
 function putMovie() {
-  /* Task 3.3. 
-    - Get the movie data using getMovie()
-    - Configure the XMLHttpRequest to make a PUT to /movies/:imdbID
-    - Set the 'Content-Type' appropriately for JSON data
-    - Configure the function below as the onload event handler
-    - Send the movie data as JSON
-  */
+  const movie = getMovie();
 
   const xhr = new XMLHttpRequest();
+  xhr.open('PUT', `/movies/${movie.imdbID}`);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+
   xhr.onload = function () {
-    if (xhr.status == 200 || xhr.status === 204) {
-      location.href = "index.html";
+    if (xhr.status >= 200 && xhr.status < 300) {
+      location.href = 'index.html';
     } else {
-      alert("Saving of movie data failed. Status code was " + xhr.status);
+      alert('Movie could not be updated');
     }
   };
+
+  xhr.send(JSON.stringify(movie));
 }
 
-/** Loading and setting the movie data for the movie with the passed imdbID */
-const imdbID = new URLSearchParams(window.location.search).get("imdbID");
+window.onload = function () {
+  const params = new URLSearchParams(window.location.search);
+  const imdbID = params.get('imdbID');
 
-const xhr = new XMLHttpRequest();
-xhr.open("GET", "/movies/" + imdbID);
-xhr.onload = function () {
-  if (xhr.status === 200) {
-    setMovie(JSON.parse(xhr.responseText));
-  } else {
-    alert(
-      "Loading of movie data failed. Status was " +
-        xhr.status +
-        " - " +
-        xhr.statusText,
-    );
+  if (!imdbID) {
+    alert('No imdbID provided');
+    return;
   }
+
+  document.getElementById('imdbID').value = imdbID;
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', `/movies/${imdbID}`);
+
+  xhr.onload = function () {
+    if (xhr.status === 200) {
+      const movie = JSON.parse(xhr.responseText);
+      setMovie(movie);
+    } else {
+      alert('Movie not found');
+    }
+  };
+
+  xhr.send();
 };
-
-xhr.send();
-

@@ -1,36 +1,73 @@
 const express = require('express');
 const path = require('path');
-const bodyParser = require('body-parser');
-const movieModel = require('./movie-model.js');
+const { seedTitles, movies } = require('./movie-model');
 
 const app = express();
+const port = 3000;
+const apiKey = '3b759f50';
 
-// Parse urlencoded bodies
-app.use(bodyParser.json()); 
-
-// Serve static content in directory 'files'
 app.use(express.static(path.join(__dirname, 'files')));
+app.use(express.json());
 
-// Configure a 'get' endpoint for all movies..
+async function loadMoviesFromOmdb() {
+  for (const title of seedTitles) {
+    const response = await fetch(
+        `https://www.omdbapi.com/?apikey=${apiKey}&t=${encodeURIComponent(title)}`
+    );    const data = await response.json();
+
+    if (data.Response === 'True') {
+      movies[data.imdbID] = {
+        imdbID: data.imdbID,
+        Title: data.Title,
+        Released: data.Released === 'N/A' ? 'Date unknown' : data.Released,
+        Runtime: parseInt(data.Runtime) || 0,
+        Genres: data.Genre ? data.Genre.split(', ') : [],
+        Directors: data.Director ? data.Director.split(', ') : [],
+        Writers: data.Writer ? data.Writer.split(', ') : [],
+        Actors: data.Actors ? data.Actors.split(', ') : [],
+        Plot: data.Plot,
+        Poster: data.Poster,
+        Metascore: parseInt(data.Metascore) || 0,
+        imdbRating: parseFloat(data.imdbRating) || 0
+      };
+    }
+  }
+}
+
 app.get('/movies', function (req, res) {
-  /* Task 1.2. Remove the line below and eturn the movies from 
-     the model as an array */
-  res.sendStatus(404)
-})
+  res.json(Object.values(movies));
+});
 
-// Configure a 'get' endpoint for a specific movie
 app.get('/movies/:imdbID', function (req, res) {
-  /* Task 2.1. Remove the line below and add the 
-    functionality here */
-  res.sendStatus(404)
-})
+  const movie = movies[req.params.imdbID];
 
-/* Task 3.1 and 3.2.
-   - Add a new PUT endpoint
-   - Check whether the movie sent by the client already exists 
-     and continue as described in the assignment */
+  if (movie) {
+    res.send(movie);
+  } else {
+    res.sendStatus(404);
+  }
+});
 
-app.listen(3000)
+app.put('/movies/:imdbID', function (req, res) {
+  const imdbID = req.params.imdbID;
+  const movie = req.body;
 
-console.log("Server now listening on http://localhost:3000/")
+  const exists = !!movies[imdbID];
+  movies[imdbID] = movie;
 
+  if (exists) {
+    res.sendStatus(200);
+  } else {
+    res.status(201).send(movie);
+  }
+});
+
+loadMoviesFromOmdb()
+    .then(() => {
+      app.listen(port, () => {
+        console.log(`Server now listening on http://localhost:${port}/`);
+      });
+    })
+    .catch(error => {
+      console.error('Startup error:', error);
+    });

@@ -1,41 +1,57 @@
-@import url(base.css);
+/* index.css */
 
-h1 {
-  font-size: 200%;
-  margin: 8px 0px;
+@import url("base.css");
+
+/* Minimal page‑specific layout for index */
+
+body {
+  padding: 60px 20px;
 }
 
-img {
-  border-radius: 12px;
+/* Page header */
+.page-header {
+  max-width: var(--container);
+  margin: 0 auto 32px;
 }
 
-article {
-  background-color: lightgray;
-  border-radius: 16px;
-  padding: 16px;
-  margin: 2vw;
+.page-header h1 {
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 1.1;
+  font-weight: 800;
 }
 
-span {
-  margin-right: 4px;
+/* Grid layout */
+.movie-grid {
+  max-width: var(--container);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 30px;
 }
 
-.genre {
-  padding: 4px 8px;
-  border: solid black 1px;
-  border-radius: 6px;
-  background-color: darkgray;
-  font-weight: bold;
-}
-
-input {
+/* Ensure the main movie container spans the right width */
+.movie-main {
+  max-width: var(--container);
+  margin: 0 auto;
   width: 100%;
 }
 
-select {
-  width: 100%;
-}
+/* Responsive */
+@media (max-width: 768px) {
+  body {
+    padding: 24px 16px;
+  }
 
-textarea {
-  width: 100%;
+  .movie-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .movie-card {
+    padding: 24px;
+  }
+
+  .credits-section {
+    grid-template-columns: 1fr;
+  }
 }
